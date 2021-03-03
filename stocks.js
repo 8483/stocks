@@ -40,18 +40,18 @@ let companies = data.map((item) => {
 
 let filteredCompanies = companies.filter((company) => !company.symbol.includes("/") && !company.symbol.includes("^") && company.marketCap > 0);
 
+// filteredCompanies = filteredCompanies.filter((company) => company.symbol == "RKT");
+
 (async () => {
     console.log("CREATING DATABASE...");
 
     let initDatabase = `
-        use finance;
+        DROP DATABASE IF EXISTS stocks;
+        CREATE DATABASE stocks;
 
-        DROP DATABASE IF EXISTS finance;
-        CREATE DATABASE finance;
+        use stocks;
 
-        use finance;
-
-        CREATE TABLE overview (
+        CREATE TABLE metrics (
             id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
             symbol VARCHAR(10),
 
@@ -59,6 +59,15 @@ let filteredCompanies = companies.filter((company) => !company.symbol.includes("
             description TEXT,
             industry VARCHAR(255),
             sector VARCHAR(255),
+
+            currentPrice DECIMAL(50, 2),
+            regularMarketOpen DECIMAL(50, 2),
+            preMarketPrice DECIMAL(50, 2),
+            regularMarketPreviousClose DECIMAL(50, 2),
+            fiftyDayAverage DECIMAL(50, 2),
+            twoHundredDayAverage DECIMAL(50, 2),
+            fiftyTwoWeekHigh DECIMAL(50, 2),
+            fiftyTwoWeekLow DECIMAL(50, 2),
 
             marketCap BIGINT,
 
@@ -78,8 +87,10 @@ let filteredCompanies = companies.filter((company) => !company.symbol.includes("
 
             bookValue DECIMAL(50, 2),
 
-            revenueQuarterlyGrowth DECIMAL(50, 2),
-            earningsQuarterlyGrowth DECIMAL(50, 2),
+            revenueGrowthYoy DECIMAL(50, 2),
+            earningsGrowthYoy DECIMAL(50, 2),
+            revenueQuarterlyGrowthYoy DECIMAL(50, 2),
+            earningsQuarterlyGrowthYoy DECIMAL(50, 2),
 
             ebitda BIGINT,
 
@@ -93,10 +104,27 @@ let filteredCompanies = companies.filter((company) => !company.symbol.includes("
 
             timestamp DATETIME
         );
+
+        CREATE TABLE prices (
+            id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+
+            symbol VARCHAR(10),
+            date DATE,
+
+            open DECIMAL(50, 2),
+            high DECIMAL(50, 2),
+            low DECIMAL(50, 2),
+            close DECIMAL(50, 2),
+            adjustedClose DECIMAL(50, 2),
+            volume BIGINT,
+
+            timestamp DATETIME
+        );
     `;
 
     await pool.query(initDatabase);
 
+    // Execution time ~ 6 min.
     // 100 companies in 22 seconds = 4 companies / second. 1,700 companies in 425 seconds i.e. 7 minutes.
     for (let i = 0; i < filteredCompanies.length; i++) {
         let company = filteredCompanies[i];
@@ -106,18 +134,20 @@ let filteredCompanies = companies.filter((company) => !company.symbol.includes("
 
         console.log(`${progress}% - ${i + 1}/${filteredCompanies.length} - ${symbol}`);
 
-        await getData(symbol);
+        // 7 minutes
+        await getMetrics(symbol);
 
-        console.log("\n");
+        // 17 minutes
+        await getPrices(symbol);
     }
 
-    async function getData(symbol) {
+    async function getMetrics(symbol) {
         try {
             let modules = ["summaryDetail", "defaultKeyStatistics", "financialData", "summaryProfile", "price", "earnings"];
 
-            let url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=${modules.join("%2C")}`;
+            // https://query1.finance.yahoo.com/v10/finance/quoteSummary/ABR?modules=summaryDetail%2CdefaultKeyStatistics%2CfinancialData%2CsummaryProfile%2Cprice%2Cearnings
 
-            console.log(url);
+            let url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=${modules.join("%2C")}`;
 
             let response = await fetch(url);
             let raw = await response.json();
@@ -126,14 +156,23 @@ let filteredCompanies = companies.filter((company) => !company.symbol.includes("
             // console.log(data);
 
             let query = `
-                use finance;
-                insert into overview
+                use stocks;
+                insert into metrics
                     (
                         symbol,
                         name,
                         description, 
                         industry,
                         sector,
+
+                        currentPrice,
+                        regularMarketOpen,
+                        preMarketPrice,
+                        regularMarketPreviousClose,
+                        fiftyDayAverage,
+                        twoHundredDayAverage,
+                        fiftyTwoWeekHigh,
+                        fiftyTwoWeekLow,
 
                         marketCap,
 
@@ -153,8 +192,10 @@ let filteredCompanies = companies.filter((company) => !company.symbol.includes("
 
                         bookValue,
 
-                        revenueQuarterlyGrowth,
-                        earningsQuarterlyGrowth,
+                        revenueGrowthYoy,
+                        earningsGrowthYoy,
+                        revenueQuarterlyGrowthYoy,
+                        earningsQuarterlyGrowthYoy,
 
                         ebitda,
 
@@ -170,6 +211,15 @@ let filteredCompanies = companies.filter((company) => !company.symbol.includes("
                     )
                 values
                     (
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+
+                        ?,
+                        ?,
+                        ?,
                         ?,
                         ?,
                         ?,
@@ -194,6 +244,8 @@ let filteredCompanies = companies.filter((company) => !company.symbol.includes("
 
                         ?,
 
+                        ?,
+                        ?,
                         ?,
                         ?,
 
@@ -219,6 +271,15 @@ let filteredCompanies = companies.filter((company) => !company.symbol.includes("
                 data.summaryProfile ? data.summaryProfile.industry : null,
                 data.summaryProfile ? data.summaryProfile.sector : null,
 
+                extractValue("financialData", "currentPrice"),
+                extractValue("price", "regularMarketOpen"),
+                extractValue("price", "preMarketPrice"),
+                extractValue("price", "regularMarketPreviousClose"),
+                extractValue("summaryDetail", "fiftyDayAverage"),
+                extractValue("summaryDetail", "twoHundredDayAverage"),
+                extractValue("summaryDetail", "fiftyTwoWeekHigh"),
+                extractValue("summaryDetail", "fiftyTwoWeekLow"),
+
                 extractValue("summaryDetail", "marketCap"),
 
                 extractValue("defaultKeyStatistics", "sharesOutstanding"),
@@ -237,6 +298,8 @@ let filteredCompanies = companies.filter((company) => !company.symbol.includes("
 
                 extractValue("defaultKeyStatistics", "bookValue"),
 
+                extractValue("financialData", "revenueGrowth"),
+                extractValue("financialData", "earningsGrowth"),
                 extractValue("defaultKeyStatistics", "revenueQuarterlyGrowth"),
                 extractValue("defaultKeyStatistics", "earningsQuarterlyGrowth"),
 
@@ -258,6 +321,76 @@ let filteredCompanies = companies.filter((company) => !company.symbol.includes("
             }
 
             await pool.query(query, stockData);
+        } catch (err) {
+            console.log(err);
+        }
+    }
+
+    async function getPrices(symbol) {
+        try {
+            let numberOfDays = 60;
+
+            let timestampFrom = Math.floor(Date.now() / 1000) - numberOfDays * 86400;
+            let timestampTo = Math.floor(Date.now() / 1000); // 0 is since beginning
+
+            let url = `https://query1.finance.yahoo.com/v7/finance/download/${symbol}?period1=${timestampFrom}&period2=${timestampTo}&interval=1d&events=history`;
+
+            let response = await fetch(url);
+            let csv = await response.text();
+            let data = csv.split(/\r?\n/);
+
+            // remove csv header row
+            data.shift();
+
+            let prices = data.map((item) => {
+                let parts = item.split(",");
+
+                return {
+                    date: parts[0],
+                    open: parts[1],
+                    high: parts[2],
+                    low: parts[3],
+                    close: parts[4],
+                    adjustedClose: parts[5],
+                    volume: parts[6],
+                };
+            });
+
+            for (let i = 0; i < prices.length; i++) {
+                let price = prices[i];
+
+                let query = `
+                    use stocks;
+                    insert into prices
+                        (
+                            symbol,
+                            date,
+                            open,
+                            high,
+                            low,
+                            close,
+                            adjustedClose,
+                            volume,
+                            timestamp
+                        )
+                    values
+                        (
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            now()
+                        );
+                `;
+
+                let data = [symbol, price.date, price.open, price.high, price.low, price.close, price.adjustedClose, price.volume];
+
+                await pool.query(query, data);
+            }
         } catch (err) {
             console.log(err);
         }
