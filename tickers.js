@@ -1,7 +1,7 @@
 const fs = require("fs");
 
 // https://www.nasdaq.com/market-activity/stocks/screener for the csv file, paste in tickers
-// NYSE USA ~ 1,800 tickers i.e. 4 days to cover them all
+// DON'T USE A FILTER... Around 7,200 tickers.
 let inputFile = `tickers.csv`;
 let input = fs.readFileSync(inputFile, "utf8");
 let data = input.split(/\r?\n/);
@@ -29,6 +29,7 @@ let companies = data.map((item) => {
     return company;
 });
 
+// Around 5,800 tickers after filter.
 let filteredCompanies = companies.filter((company) => !company.symbol.includes("/") && !company.symbol.includes("^") && company.marketCap > 0);
 
 // filteredCompanies = filteredCompanies.filter((company) => company.symbol == "RKT");

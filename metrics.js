@@ -6,11 +6,12 @@ const tickers = require("./tickers.js");
     let query = `
         use stocks;
         delete from metrics;
+        ALTER TABLE metrics AUTO_INCREMENT = 1;
     `;
 
     await pool.query(query);
 
-    // Execution time ~ 7 min.
+    // 5,741 tickers in 24 minutes = 240 tickers/min
     for (let i = 0; i < tickers.length; i++) {
         let company = tickers[i];
         let symbol = company.symbol;
@@ -46,16 +47,47 @@ const tickers = require("./tickers.js");
                         industry,
                         sector,
 
-                        preMarketPrice,
+                        beta,
                         currentPrice,
                         regularMarketOpen,
+                        preMarketPrice,
                         regularMarketPreviousClose,
                         fiftyDayAverage,
                         twoHundredDayAverage,
                         fiftyTwoWeekHigh,
                         fiftyTwoWeekLow,
 
+                        regularMarketVolume,
+                        averageDailyVolume10Day,
+                        averageDailyVolume3Month,
+
                         marketCap,
+                        enterpriseValue,
+                        totalRevenue,
+                        enterpriseToRevenue,
+                        ebitda,
+                        enterpriseToEbitda,
+                        profitMargins,
+
+                        revenueGrowthYoy,
+                        earningsGrowthYoy,
+                        revenueQuarterlyGrowthYoy,
+                        earningsQuarterlyGrowthYoy,
+
+                        trailingEps,
+                        trailingPe,
+                        forwardPe,
+                        pegRatio,
+                        bookValue,
+                        priceToBook,
+                        returnOnAssets,
+                        returnOnEquity,
+
+                        totalCash,
+                        freeCashflow,
+                        currentRatio,
+                        debtToEquity,
+                        totalDebt,
 
                         sharesOutstanding,
                         floatShares,
@@ -64,31 +96,8 @@ const tickers = require("./tickers.js");
                         shortRatio,
                         shortPercentOfFloat,
 
-                        enterpriseValue,
-                        trailingPe,
-                        forwardPe,
-                        pegRatio,
-                        enterpriseToRevenue,
-                        enterpriseToEbitda,
-                        priceToBook,
-
-                        bookValue,
-
-                        revenueGrowthYoy,
-                        earningsGrowthYoy,
-                        revenueQuarterlyGrowthYoy,
-                        earningsQuarterlyGrowthYoy,
-
-                        totalRevenue,
-                        ebitda,
-
-                        returnOnAssets,
-                        returnOnEquity,
-
-                        totalCash,
-                        freeCashflow,
-
-                        debtToEquity,
+                        lastFiscalYearEnd,
+                        nextFiscalYearEnd,
 
                         timestamp
                     )
@@ -96,6 +105,20 @@ const tickers = require("./tickers.js");
                     (
                         ?,
                         ?,
+                        ?, 
+                        ?,
+                        ?,
+
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+
                         ?,
                         ?,
                         ?,
@@ -107,17 +130,13 @@ const tickers = require("./tickers.js");
                         ?,
                         ?,
                         ?,
-                        ?,
 
-                        ?,
-                        
-                        ?,
-                        ?,
                         ?,
                         ?,
                         ?,
                         ?,
 
+                        ?,
                         ?,
                         ?,
                         ?,
@@ -127,7 +146,6 @@ const tickers = require("./tickers.js");
                         ?,
 
                         ?,
-
                         ?,
                         ?,
                         ?,
@@ -135,13 +153,12 @@ const tickers = require("./tickers.js");
 
                         ?,
                         ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
 
                         ?,
-                        ?,
-                        
-                        ?,
-                        ?,
-
                         ?,
 
                         now()
@@ -150,12 +167,12 @@ const tickers = require("./tickers.js");
 
             let stockData = [
                 symbol,
-
                 data.price.shortName,
                 data.summaryProfile ? data.summaryProfile.longBusinessSummary : null,
                 data.summaryProfile ? data.summaryProfile.industry : null,
                 data.summaryProfile ? data.summaryProfile.sector : null,
 
+                extractValue("summaryDetail", "beta"),
                 extractValue("financialData", "currentPrice"),
                 extractValue("price", "regularMarketOpen"),
                 extractValue("price", "preMarketPrice"),
@@ -165,7 +182,37 @@ const tickers = require("./tickers.js");
                 extractValue("summaryDetail", "fiftyTwoWeekHigh"),
                 extractValue("summaryDetail", "fiftyTwoWeekLow"),
 
+                extractValue("price", "regularMarketVolume"),
+                extractValue("price", "averageDailyVolume10Day"),
+                extractValue("price", "averageDailyVolume3Month"),
+
                 extractValue("summaryDetail", "marketCap"),
+                extractValue("defaultKeyStatistics", "enterpriseValue"),
+                extractValue("financialData", "totalRevenue"),
+                extractValue("defaultKeyStatistics", "enterpriseToRevenue"),
+                extractValue("financialData", "ebitda"),
+                extractValue("defaultKeyStatistics", "enterpriseToEbitda"),
+                extractValue("financialData", "profitMargins"),
+
+                extractValue("financialData", "revenueGrowth"),
+                extractValue("financialData", "earningsGrowth"),
+                extractValue("defaultKeyStatistics", "revenueQuarterlyGrowth"),
+                extractValue("defaultKeyStatistics", "earningsQuarterlyGrowth"),
+
+                extractValue("defaultKeyStatistics", "trailingEps"),
+                extractValue("summaryDetail", "trailingPE"),
+                extractValue("summaryDetail", "forwardPE"),
+                extractValue("defaultKeyStatistics", "pegRatio"),
+                extractValue("defaultKeyStatistics", "bookValue"),
+                extractValue("defaultKeyStatistics", "priceToBook"),
+                extractValue("financialData", "returnOnAssets"),
+                extractValue("financialData", "returnOnEquity"),
+
+                extractValue("financialData", "totalCash"),
+                extractValue("financialData", "freeCashflow"),
+                extractValue("financialData", "currentRatio"),
+                extractValue("financialData", "debtToEquity"),
+                extractValue("financialData", "totalDebt"),
 
                 extractValue("defaultKeyStatistics", "sharesOutstanding"),
                 extractValue("defaultKeyStatistics", "floatShares"),
@@ -174,31 +221,8 @@ const tickers = require("./tickers.js");
                 extractValue("defaultKeyStatistics", "shortRatio"),
                 extractValue("defaultKeyStatistics", "shortPercentOfFloat"),
 
-                extractValue("defaultKeyStatistics", "enterpriseValue"),
-                extractValue("summaryDetail", "trailingPE"),
-                extractValue("summaryDetail", "forwardPE"),
-                extractValue("defaultKeyStatistics", "pegRatio"),
-                extractValue("defaultKeyStatistics", "enterpriseToRevenue"),
-                extractValue("defaultKeyStatistics", "enterpriseToEbitda"),
-                extractValue("defaultKeyStatistics", "priceToBook"),
-
-                extractValue("defaultKeyStatistics", "bookValue"),
-
-                extractValue("financialData", "revenueGrowth"),
-                extractValue("financialData", "earningsGrowth"),
-                extractValue("defaultKeyStatistics", "revenueQuarterlyGrowth"),
-                extractValue("defaultKeyStatistics", "earningsQuarterlyGrowth"),
-
-                extractValue("financialData", "totalRevenue"),
-                extractValue("financialData", "ebitda"),
-
-                extractValue("financialData", "returnOnAssets"),
-                extractValue("financialData", "returnOnEquity"),
-
-                extractValue("financialData", "totalCash"),
-                extractValue("financialData", "freeCashflow"),
-
-                extractValue("financialData", "debtToEquity"),
+                data.defaultKeyStatistics ? data.defaultKeyStatistics.lastFiscalYearEnd.fmt : null,
+                data.defaultKeyStatistics ? data.defaultKeyStatistics.nextFiscalYearEnd.fmt : null,
             ];
 
             function extractValue(module, metric) {
