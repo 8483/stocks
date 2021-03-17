@@ -101,7 +101,21 @@ const pool = require("./pool.js");
                 timestamp DATETIME
             );
 
-            CREATE TABLE income (
+            CREATE TABLE history (
+                id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+
+                symbol VARCHAR(10),
+
+                period varchar(10),
+
+                revenue BIGINT,
+                netIncome BIGINT,
+                ebitda BIGINT,
+
+                timestamp DATETIME
+            );
+
+            CREATE TABLE ttm (
                 id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
 
                 symbol VARCHAR(10),
@@ -112,6 +126,17 @@ const pool = require("./pool.js");
                 incomeTaxExpense BIGINT,
                 incomeBeforeTax BIGINT,
                 netIncome BIGINT,
+
+                timestamp DATETIME
+            );
+
+            CREATE TABLE forecast (
+                id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+
+                symbol VARCHAR(10),
+
+                revenueCurrentYear BIGINT,
+                revenueNextYear BIGINT,
 
                 timestamp DATETIME
             );

@@ -18,7 +18,7 @@ const pool = require("./pool.js");
 
         let progress = Math.round(((i + 1) / tickers.length) * 100);
 
-        console.log(`${progress}% - ${i + 1}/${tickers.length} - data for ${symbol}`);
+        console.log(`${progress}% - ${i + 1}/${tickers.length} - cashflow for ${symbol}`);
 
         let freeCashflows = await getFreeCashflows(symbol);
 

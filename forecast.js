@@ -1,190 +1,97 @@
-const pool = require("./pool.js");
-const ts = require("timeseries-analysis");
+const fetch = require("node-fetch");
+const parse = require("node-html-parser").parse;
 const tickers = require("./tickers.js");
+const pool = require("./pool.js");
 
 (async () => {
-    // let query = `
-    //     use stocks;
-    //     delete from prices;
-    // `;
+    let query = `
+        use stocks;
+        select symbol from forecast;
+    `;
 
-    // await pool.query(query);
+    let result = await pool.query(query);
+    let insertedTickersRaw = result[1];
+    let insertedTickers = insertedTickersRaw.map((item) => item.symbol);
 
-    // Execution time ~ 13 min.
+    // console.log(insertedTickers);
+    // console.log(await getForecast("aca"));
+
     for (let i = 0; i < tickers.length; i++) {
         let company = tickers[i];
         let symbol = company.symbol;
 
+        let message = "";
+
+        if (insertedTickers.includes(symbol)) {
+            message = "skipping ...";
+        } else {
+            let data = await getForecast(symbol);
+
+            let query = `
+                insert into forecast
+                    (symbol, revenueCurrentYear, revenueNextYear, timestamp)
+                values
+                    (?, ?, ?, now())
+            `;
+
+            if (data) {
+                await pool.query(query, [symbol, data.current, data.next]);
+                message = "inserting +++";
+            } else {
+                await pool.query(query, [symbol, null, null]);
+                message = "NO DATA ???";
+            }
+        }
+
         let progress = Math.round(((i + 1) / tickers.length) * 100);
-
-        console.log(`${progress}% - ${i + 1}/${tickers.length} - prices for ${symbol}`);
-
-        await forecast(symbol);
+        console.log(`${progress}% - ${i + 1}/${tickers.length} - forecast for ${symbol} - ${message}`);
     }
 
-    async function forecast(symbol) {
+    async function getForecast(symbol) {
         try {
-            let query = `
-                select * from stocks.prices
-                where symbol = ?
-            `;
+            let url = `https://finance.yahoo.com/quote/${symbol}/analysis`;
 
-            let prices = await pool.query(query, [symbol]);
+            let response = await fetch(url);
+            let raw = await response.text();
 
-            // console.log(prices[prices.length - 1]);
+            const root = parse(raw);
 
-            // console.log(prices);
+            let rows = root.querySelectorAll("tr");
 
-            let data = prices.map((item) => item.adjustedClose);
+            if (rows && rows.length > 0) {
+                let currentRaw = rows[8].childNodes[3].childNodes[0].childNodes[0].rawText;
+                let nextRaw = rows[8].childNodes[4].childNodes[0].childNodes[0].rawText;
 
-            // Load the data
-            // Formats the data into [ date, value ]
-            let t = new ts.main(ts.adapter.fromArray(data));
-
-            // console.log(t);
-
-            // Generate trend
-            t.dsp_itrend({ alpha: 0.7 }).smoother({ period: 2 }).save("dsp");
-
-            function predict(pastDataPoints, futureDataPoint) {
-                let dataPoints = data.length;
-                // console.log("Data points:", dataPoints)
-
-                // Last N data points
-                let slicedData = t.data.slice(dataPoints - pastDataPoints, dataPoints);
-                // console.log(slicedData)
-
-                // We calculate the AR coefficients of the last N points
-                let coeffs = t.ARMaxEntropy({
-                    degree: 7,
-                    data: slicedData,
-                });
-
-                // console.log(coeffs)
-
-                // Forecast the specified period after the last N data points
-                let forecastDatapoint = slicedData.length + futureDataPoint;
-                // console.log("Forecast data point:", forecastDatapoint)
-
-                // Now, we calculate the forecasted value of that N + 1 datapoint using the AR coefficients:
-                let forecast = 0; // Init the value at 0.
-                for (let i = 0; i < coeffs.length; i++) {
-                    // Loop through the coefficients
-                    // forecast -= t.data[10 - i][1] * coeffs[i];
-                    // Explanation for that line:
-                    // t.data contains the current dataset, which is in the format [ [date, value], [date,value], ... ]
-                    // For each coefficient, we substract from "forecast" the value of the "N - x" datapoint's value, multiplicated by the coefficient,
-                    // where N is the last known datapoint value, and x is the coefficient's index.
-                    let value = t.data[forecastDatapoint - i][1];
-                    // console.log(value)
-                    forecast -= Math.round(value * coeffs[i]);
-                }
-
-                return forecast;
+                return {
+                    current: getValue(currentRaw),
+                    next: getValue(nextRaw),
+                };
             }
 
-            let chartObject = {
-                type: "bar",
-                data: {
-                    datasets: [
-                        {
-                            label: "Prices",
-                            data: [],
-                            fill: false,
-                            backgroundColor: "rgba(0, 0, 0, 0.3)",
-                            order: 2,
-                        },
-                        {
-                            label: "Trend",
-                            data: [],
-                            type: "line",
-                            fill: false,
-                            borderWidth: 1,
-                            backgroundColor: "rgba(0, 0, 0, 1)",
-                            borderColor: "rgba(0, 0, 0, 1)",
-                            pointRadius: 0,
-                            order: 1,
-                        },
-                    ],
-                },
-                options: {
-                    title: {
-                        display: true,
-                        text: `${symbol}`,
-                    },
-                    scales: {
-                        xAxes: [
-                            {
-                                type: "category",
-                                labels: [],
-                                stacked: true,
-                                ticks: {
-                                    fontSize: 6,
-                                },
-                                gridLines: {
-                                    color: "rgba(0, 0, 0, 0.1)",
-                                },
-                            },
-                        ],
-                        yAxes: [
-                            {
-                                position: "right",
-                                stacked: false,
-                                // ticks: {
-                                //     stepSize: 100
-                                // },
-                                gridLines: {
-                                    color: "rgba(0, 0, 0, 0.1)",
-                                },
-                            },
-                        ],
-                    },
-                },
-            };
+            function getValue(string) {
+                if (string == "N/A") return null;
 
-            // Add X Axis labels
-            prices.map((item) => {
-                let date = item.date.toISOString().split("T")[0];
-                chartObject.options.scales.xAxes[0].labels.push(date);
-            });
+                let numberRaw = string.slice(0, string.length - 1);
+                let letter = string.slice(string.length - 1, string.length);
 
-            // Populate prices
-            prices.map((item) => {
-                chartObject.data.datasets[0].data.push(item.adjustedClose);
-            });
+                let numberParts = numberRaw.split(".");
 
-            // Populate Trend data
-            t.data.map((item) => {
-                chartObject.data.datasets[1].data.push(Math.round(item[1]));
-            });
+                let numberLeft = numberParts[0] ? parseInt(numberParts[0]) : 0;
+                let numberRight = numberParts[1] ? parseInt(numberParts[1]) : 0;
 
-            let forecast = predict(30, 1);
+                let number = 0;
 
-            // console.log(chartObject.data.datasets[0].data);
-            // console.log(forecast);
+                if (letter == "B") {
+                    number = numberLeft * 1000000000 + numberRight * 10000000;
+                } else {
+                    number = numberLeft * 1000000 + numberRight * 10000;
+                }
 
-            chartObject.options.scales.xAxes[0].labels.push("x");
-            chartObject.data.datasets[0].data.push(forecast);
-
-            // console.log(chartObject.data.datasets[0].data);
-
-            let forecastQuery = `
-                update stocks.metrics
-                set forecast = ?
-                where symbol = ?;
-            `;
-
-            await pool.query(forecastQuery, [forecast, symbol]);
-
-            // console.log(chartObject.data);
-
-            const json = JSON.stringify(chartObject);
-            const url_escaped_json = encodeURIComponent(json);
-
-            let url = { url: `https://quickchart.io/chart?w=1000&bkg=white&c=${url_escaped_json}` };
-
-            console.log(url);
+                // console.log(numberRaw, numberLeft, numberRight, letter, number);
+                return number;
+            }
         } catch (err) {
+            console.log(symbol);
             console.log(err);
         }
     }
