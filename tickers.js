@@ -2,6 +2,7 @@ const fs = require("fs");
 
 // https://www.nasdaq.com/market-activity/stocks/screener for the csv file, paste in tickers
 // DON'T USE A FILTER... Around 7,200 tickers.
+
 let inputFile = `tickers.csv`;
 let input = fs.readFileSync(inputFile, "utf8");
 let data = input.split(/\r?\n/);

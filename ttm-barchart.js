@@ -1,7 +1,7 @@
 const fetch = require("node-fetch");
 const parse = require("node-html-parser").parse;
-const tickers = require("../tickers.js");
-const pool = require("../pool.js");
+const tickers = require("./tickers.js");
+const pool = require("./pool.js");
 
 (async () => {
     let query = `
@@ -48,7 +48,7 @@ const pool = require("../pool.js");
             `;
 
             if (data) {
-                await pool.query(query, [symbol, data.revenue, data.ebitda, data.income, data.incomeTax, data.incomeBeforeTax, data.interestExpense]);
+                await pool.query(query, [symbol, data.revenue, data.ebitda, data.interestExpense, data.incomeTax, data.incomeBeforeTax, data.income]);
                 message = "inserting +++";
             } else {
                 await pool.query(query, [symbol, null, null, null, null, null, null]);

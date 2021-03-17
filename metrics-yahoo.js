@@ -1,6 +1,6 @@
 const fetch = require("node-fetch");
-const pool = require("../pool.js");
-const tickers = require("../tickers.js");
+const tickers = require("./tickers.js");
+const pool = require("./pool.js");
 
 (async () => {
     let query = `

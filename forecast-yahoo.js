@@ -1,7 +1,7 @@
 const fetch = require("node-fetch");
 const parse = require("node-html-parser").parse;
-const tickers = require("../tickers.js");
-const pool = require("../pool.js");
+const tickers = require("./tickers.js");
+const pool = require("./pool.js");
 
 (async () => {
     let query = `
@@ -81,10 +81,22 @@ const pool = require("../pool.js");
 
                 let number = 0;
 
-                if (letter == "B") {
-                    number = numberLeft * 1000000000 + numberRight * 10000000;
-                } else {
-                    number = numberLeft * 1000000 + numberRight * 10000;
+                switch (letter) {
+                    case "B":
+                        number = numberLeft * 1000000000 + numberRight * 10000000;
+                        break;
+
+                    case "M":
+                        number = numberLeft * 1000000 + numberRight * 10000;
+
+                        break;
+
+                    case "k":
+                        number = numberLeft * 1000;
+                        break;
+
+                    default:
+                        break;
                 }
 
                 // console.log(numberRaw, numberLeft, numberRight, letter, number);
