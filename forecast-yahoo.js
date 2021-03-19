@@ -27,6 +27,8 @@ const pool = require("./pool.js");
         } else {
             let data = await getForecast(symbol);
 
+            // console.log(data);
+
             let query = `
                 insert into forecast
                     (symbol, revenueCurrentYear, revenueNextYear, timestamp)
@@ -35,7 +37,7 @@ const pool = require("./pool.js");
             `;
 
             if (data) {
-                await pool.query(query, [symbol, data.current, data.next]);
+                await pool.query(query, [symbol, data.revenueCurrentYear, data.revenueNextYear]);
                 message = "inserting +++";
             } else {
                 await pool.query(query, [symbol, null, null]);
@@ -63,8 +65,8 @@ const pool = require("./pool.js");
                 let nextRaw = rows[8].childNodes[4].childNodes[0].childNodes[0].rawText;
 
                 return {
-                    current: getValue(currentRaw),
-                    next: getValue(nextRaw),
+                    revenueCurrentYear: getValue(currentRaw),
+                    revenueNextYear: getValue(nextRaw),
                 };
             }
 

@@ -18,6 +18,8 @@ const pool = require("./pool.js");
                 description TEXT,
                 industry VARCHAR(255),
                 sector VARCHAR(255),
+                country VARCHAR(255),
+                ipoYear VARCHAR(4),
 
                 beta DECIMAL(50, 2),
                 currentPrice DECIMAL(50, 2),
@@ -138,6 +140,13 @@ const pool = require("./pool.js");
                 revenueCurrentYear BIGINT,
                 revenueNextYear BIGINT,
 
+                timestamp DATETIME
+            );
+
+            CREATE TABLE rating (
+                id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+                symbol VARCHAR(10),
+                rating DECIMAL(50, 2),
                 timestamp DATETIME
             );
         `;
