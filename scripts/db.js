@@ -1,4 +1,4 @@
-const pool = require("./pool.js");
+const pool = require("../pool.js");
 
 (async () => {
     try {
@@ -25,6 +25,7 @@ const pool = require("./pool.js");
                 currentPrice DECIMAL(50, 2),
                 regularMarketOpen DECIMAL(50, 2),
                 preMarketPrice DECIMAL(50, 2),
+                postMarketPrice DECIMAL(50, 2),
                 regularMarketPreviousClose DECIMAL(50, 2),
                 fiftyDayAverage DECIMAL(50, 2),
                 twoHundredDayAverage DECIMAL(50, 2),
@@ -73,6 +74,17 @@ const pool = require("./pool.js");
                 lastFiscalYearEnd DATE,
                 nextFiscalYearEnd DATE,
 
+                dividendRate DECIMAL(50, 2),
+                dividendYield DECIMAL(50, 2),
+                dividendDate DATE,
+
+                recommendationMean DECIMAL(50, 2),
+                recommendationKey VARCHAR(255),
+                targetLowPrice DECIMAL(50, 2),
+                targetMeanPrice DECIMAL(50, 2),
+                targetMedianPrice DECIMAL(50, 2),
+                targetHighPrice DECIMAL(50, 2),
+
                 timestamp DATETIME
             );
 
@@ -81,13 +93,24 @@ const pool = require("./pool.js");
 
                 symbol VARCHAR(10),
                 date DATE,
-
-                open DECIMAL(50, 2),
-                high DECIMAL(50, 2),
-                low DECIMAL(50, 2),
                 close DECIMAL(50, 2),
-                adjustedClose DECIMAL(50, 2),
                 volume BIGINT,
+
+                timestamp DATETIME
+            );
+
+            CREATE TABLE indicators (
+                id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+
+                symbol VARCHAR(10),
+
+                rsi DECIMAL(50, 2),
+                macd DECIMAL(50, 2),
+                macdSignal DECIMAL(50, 2),
+                macdHistogram DECIMAL(50, 2),
+
+                histogramSlope DECIMAL(50, 2),
+                histogramVelocity DECIMAL(50, 2),
 
                 timestamp DATETIME
             );

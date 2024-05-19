@@ -1,17 +1,18 @@
 const fetch = require("node-fetch");
 const tickers = require("./tickers.js");
-const pool = require("./pool.js");
+const pool = require("../pool.js");
 
 (async () => {
-    let query = `
-        use stocks;
-        delete from prices;
-        ALTER TABLE prices AUTO_INCREMENT = 1;
-    `;
+    // let query = `
+    //     use stocks;
+    //     delete from prices;
+    //     ALTER TABLE prices AUTO_INCREMENT = 1;
+    // `;
 
-    await pool.query(query);
+    // await pool.query(query);
 
-    // 5,741 tickers in 52 minutes = 110 tickers/min
+    // 20 days 5,741 tickers in 52 minutes = 110 tickers/min
+    // 50 days 5,741 tickers in 2 hours = 50 tickers/min
     for (let i = 0; i < tickers.length; i++) {
         let company = tickers[i];
         let symbol = company.symbol;
@@ -25,8 +26,26 @@ const pool = require("./pool.js");
 
     async function getPrices(symbol) {
         try {
-            let startDate = "02/15/2021";
-            let endDate = "03/21/2021";
+            let today = new Date();
+            let todayDay = today.getDate();
+            let todayMonth = today.getMonth() + 1;
+            let todayYear = today.getFullYear();
+
+            let endDate = `${todayMonth}/${todayDay}/${todayYear}`;
+
+            // console.log(endDate);
+
+            let past = new Date();
+            past.setDate(past.getDate() - 80); // will return 55 prices due to weekends being closed
+            let pastDay = past.getDate();
+            let pastMonth = past.getMonth() + 1;
+            let pastYear = past.getFullYear();
+
+            let startDate = `${pastMonth}/${pastDay}/${pastYear}`;
+
+            // console.log(startDate);
+
+            // https://www.marketwatch.com/investing/stock/gme/downloaddatapartial?startdate=4/18/2021&enddate=7/7/2021&daterange=d30&frequency=p1d&csvdownload=true&downloadpartial=false&newdates=false
 
             let url = `https://www.marketwatch.com/investing/stock/${symbol}/downloaddatapartial?startdate=${startDate}&enddate=${endDate}&daterange=d30&frequency=p1d&csvdownload=true&downloadpartial=false&newdates=false`;
 
@@ -51,9 +70,6 @@ const pool = require("./pool.js");
 
                 let day = {
                     date: `${dateParts[2]}-${dateParts[0]}-${dateParts[1]}`, // 03/19/2021
-                    open: parseFloat(parts[1]),
-                    high: parseFloat(parts[2]),
-                    low: parseFloat(parts[3]),
                     close: parseFloat(parts[4]),
                     volume: parseInt(parts[5]),
                 };
@@ -72,9 +88,6 @@ const pool = require("./pool.js");
                         (
                             symbol,
                             date,
-                            open,
-                            high,
-                            low,
                             close,
                             volume,
                             timestamp
@@ -85,14 +98,11 @@ const pool = require("./pool.js");
                             ?,
                             ?,
                             ?,
-                            ?,
-                            ?,
-                            ?,
                             now()
                         );
                 `;
 
-                let data = [symbol, price.date, price.open, price.high, price.low, price.close, price.volume];
+                let data = [symbol, price.date, price.close, price.volume];
 
                 await pool.query(query, data);
             }

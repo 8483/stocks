@@ -1,6 +1,6 @@
-const pool = require("../pool.js");
+const pool = require("../../pool.js");
 const ts = require("timeseries-analysis");
-const tickers = require("../tickers.js");
+const tickers = require("../../tickers.js");
 
 (async () => {
     // let query = `

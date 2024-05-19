@@ -1,6 +1,6 @@
 const fetch = require("node-fetch");
 const tickers = require("./tickers.js");
-const pool = require("./pool.js");
+const pool = require("../pool.js");
 
 (async () => {
     let query = `
@@ -43,6 +43,7 @@ const pool = require("./pool.js");
                             currentPrice,
                             regularMarketOpen,
                             preMarketPrice,
+                            postMarketPrice,
                             regularMarketPreviousClose,
                             fiftyDayAverage,
                             twoHundredDayAverage,
@@ -91,6 +92,17 @@ const pool = require("./pool.js");
                             lastFiscalYearEnd,
                             nextFiscalYearEnd,
 
+                            dividendRate,
+                            dividendYield,
+                            dividendDate,
+
+                            recommendationMean,
+                            recommendationKey,
+                            targetLowPrice,
+                            targetMeanPrice,
+                            targetMedianPrice,
+                            targetHighPrice,
+
                             timestamp
                         )
                     values
@@ -112,25 +124,12 @@ const pool = require("./pool.js");
                             ?,
                             ?,
                             ?,
-
-                            ?,
-                            ?,
                             ?,
 
                             ?,
                             ?,
                             ?,
-                            ?,
-                            ?,
-                            ?,
-                            ?,
 
-                            ?,
-                            ?,
-                            ?,
-                            ?,
-
-                            ?,
                             ?,
                             ?,
                             ?,
@@ -143,6 +142,20 @@ const pool = require("./pool.js");
                             ?,
                             ?,
                             ?,
+
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+
+                            ?,
+                            ?,
+                            ?,
+                            ?,
                             ?,
 
                             ?,
@@ -152,6 +165,17 @@ const pool = require("./pool.js");
                             ?,
                             ?,
 
+                            ?,
+                            ?,
+
+                            ?,
+                            ?,
+                            ?,
+
+                            ?,
+                            ?,
+                            ?,
+                            ?,
                             ?,
                             ?,
 
@@ -168,61 +192,77 @@ const pool = require("./pool.js");
                     country,
                     ipoYear,
 
-                    extractValue("summaryDetail", "beta"),
-                    extractValue("financialData", "currentPrice"),
-                    extractValue("price", "regularMarketOpen"),
-                    extractValue("price", "preMarketPrice"),
-                    extractValue("price", "regularMarketPreviousClose"),
-                    extractValue("summaryDetail", "fiftyDayAverage"),
-                    extractValue("summaryDetail", "twoHundredDayAverage"),
-                    extractValue("summaryDetail", "fiftyTwoWeekHigh"),
-                    extractValue("summaryDetail", "fiftyTwoWeekLow"),
+                    extractRaw("summaryDetail", "beta"),
+                    extractRaw("financialData", "currentPrice"),
+                    extractRaw("price", "regularMarketOpen"),
+                    extractRaw("price", "preMarketPrice"),
+                    extractRaw("price", "postMarketPrice"),
+                    extractRaw("price", "regularMarketPreviousClose"),
+                    extractRaw("summaryDetail", "fiftyDayAverage"),
+                    extractRaw("summaryDetail", "twoHundredDayAverage"),
+                    extractRaw("summaryDetail", "fiftyTwoWeekHigh"),
+                    extractRaw("summaryDetail", "fiftyTwoWeekLow"),
 
-                    extractValue("price", "regularMarketVolume"),
-                    extractValue("price", "averageDailyVolume10Day"),
-                    extractValue("price", "averageDailyVolume3Month"),
+                    extractRaw("price", "regularMarketVolume"),
+                    extractRaw("price", "averageDailyVolume10Day"),
+                    extractRaw("price", "averageDailyVolume3Month"),
 
-                    extractValue("summaryDetail", "marketCap"),
-                    extractValue("defaultKeyStatistics", "enterpriseValue"),
-                    extractValue("financialData", "totalRevenue"),
-                    extractValue("defaultKeyStatistics", "enterpriseToRevenue"),
-                    extractValue("financialData", "ebitda"),
-                    extractValue("defaultKeyStatistics", "enterpriseToEbitda"),
-                    extractValue("financialData", "profitMargins"),
+                    extractRaw("summaryDetail", "marketCap"),
+                    extractRaw("defaultKeyStatistics", "enterpriseValue"),
+                    extractRaw("financialData", "totalRevenue"),
+                    extractRaw("defaultKeyStatistics", "enterpriseToRevenue"),
+                    extractRaw("financialData", "ebitda"),
+                    extractRaw("defaultKeyStatistics", "enterpriseToEbitda"),
+                    extractRaw("financialData", "profitMargins"),
 
-                    extractValue("financialData", "revenueGrowth"),
-                    extractValue("financialData", "earningsGrowth"),
-                    extractValue("defaultKeyStatistics", "revenueQuarterlyGrowth"),
-                    extractValue("defaultKeyStatistics", "earningsQuarterlyGrowth"),
+                    extractRaw("financialData", "revenueGrowth"),
+                    extractRaw("financialData", "earningsGrowth"),
+                    extractRaw("defaultKeyStatistics", "revenueQuarterlyGrowth"),
+                    extractRaw("defaultKeyStatistics", "earningsQuarterlyGrowth"),
 
-                    extractValue("defaultKeyStatistics", "trailingEps"),
-                    extractValue("summaryDetail", "trailingPE"),
-                    extractValue("summaryDetail", "forwardPE"),
-                    extractValue("defaultKeyStatistics", "pegRatio"),
-                    extractValue("defaultKeyStatistics", "bookValue"),
-                    extractValue("defaultKeyStatistics", "priceToBook"),
-                    extractValue("financialData", "returnOnAssets"),
-                    extractValue("financialData", "returnOnEquity"),
+                    extractRaw("defaultKeyStatistics", "trailingEps"),
+                    extractRaw("summaryDetail", "trailingPE"),
+                    extractRaw("summaryDetail", "forwardPE"),
+                    extractRaw("defaultKeyStatistics", "pegRatio"),
+                    extractRaw("defaultKeyStatistics", "bookValue"),
+                    extractRaw("defaultKeyStatistics", "priceToBook"),
+                    extractRaw("financialData", "returnOnAssets"),
+                    extractRaw("financialData", "returnOnEquity"),
 
-                    extractValue("financialData", "totalCash"),
-                    extractValue("financialData", "freeCashflow"),
-                    extractValue("financialData", "currentRatio"),
-                    extractValue("financialData", "debtToEquity"),
-                    extractValue("financialData", "totalDebt"),
+                    extractRaw("financialData", "totalCash"),
+                    extractRaw("financialData", "freeCashflow"),
+                    extractRaw("financialData", "currentRatio"),
+                    extractRaw("financialData", "debtToEquity"),
+                    extractRaw("financialData", "totalDebt"),
 
-                    extractValue("defaultKeyStatistics", "sharesOutstanding"),
-                    extractValue("defaultKeyStatistics", "floatShares"),
-                    extractValue("defaultKeyStatistics", "sharesShort"),
-                    extractValue("defaultKeyStatistics", "sharesShortPriorMonth"),
-                    extractValue("defaultKeyStatistics", "shortRatio"),
-                    extractValue("defaultKeyStatistics", "shortPercentOfFloat"),
+                    extractRaw("defaultKeyStatistics", "sharesOutstanding"),
+                    extractRaw("defaultKeyStatistics", "floatShares"),
+                    extractRaw("defaultKeyStatistics", "sharesShort"),
+                    extractRaw("defaultKeyStatistics", "sharesShortPriorMonth"),
+                    extractRaw("defaultKeyStatistics", "shortRatio"),
+                    extractRaw("defaultKeyStatistics", "shortPercentOfFloat"),
 
                     data.defaultKeyStatistics ? data.defaultKeyStatistics.lastFiscalYearEnd.fmt : null,
                     data.defaultKeyStatistics ? data.defaultKeyStatistics.nextFiscalYearEnd.fmt : null,
+
+                    extractRaw("summaryDetail", "dividendRate"),
+                    extractRaw("summaryDetail", "dividendYield"),
+                    extractFormatted("summaryDetail", "exDividendDate"),
+
+                    extractRaw("financialData", "recommendationMean"),
+                    data.financialData && data.financialData.recommendationKey ? data.financialData.recommendationKey : null,
+                    extractRaw("financialData", "targetLowPrice"),
+                    extractRaw("financialData", "targetMeanPrice"),
+                    extractRaw("financialData", "targetMedianPrice"),
+                    extractRaw("financialData", "targetHighPrice"),
                 ];
 
-                function extractValue(module, metric) {
+                function extractRaw(module, metric) {
                     return data[module] && data[module][metric] ? data[module][metric].raw : null;
+                }
+
+                function extractFormatted(module, metric) {
+                    return data[module] && data[module][metric] ? data[module][metric].fmt : null;
                 }
 
                 if (data) {
@@ -243,7 +283,7 @@ const pool = require("./pool.js");
 
     async function getMetrics(symbol) {
         try {
-            let modules = ["summaryDetail", "defaultKeyStatistics", "financialData", "summaryProfile", "price", "earnings"];
+            let modules = ["summaryDetail", "defaultKeyStatistics", "financialData", "summaryProfile", "price"]; // "earnings"
 
             // https://query1.finance.yahoo.com/v10/finance/quoteSummary/ABR?modules=summaryDetail%2CdefaultKeyStatistics%2CfinancialData%2CsummaryProfile%2Cprice%2Cearnings
 

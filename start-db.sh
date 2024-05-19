@@ -1,0 +1,1 @@
+echo amanveke | sudo -S service mysql start

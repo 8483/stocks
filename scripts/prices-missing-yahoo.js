@@ -1,32 +1,32 @@
 const fetch = require("node-fetch");
 const tickers = require("./tickers.js");
-const pool = require("./pool.js");
+const pool = require("../pool.js");
 
 (async () => {
     let query = `
-        use stocks;
-        delete from prices;
-        ALTER TABLE prices AUTO_INCREMENT = 1;
+        SELECT distinct symbol 
+        FROM stocks.prices;
     `;
 
-    await pool.query(query);
+    let data = await pool.query(query);
+    let inserted = data.map((item) => item.symbol);
+
+    let missing = tickers.filter((item) => !inserted.includes(item.symbol));
 
     // 5,741 tickers in 33 minutes = 170 tickers/min
-    for (let i = 0; i < tickers.length; i++) {
-        let company = tickers[i];
+    for (let i = 0; i < missing.length; i++) {
+        let company = missing[i];
         let symbol = company.symbol;
 
-        let progress = Math.round(((i + 1) / tickers.length) * 100);
-
-        console.log(`${progress}% - ${i + 1}/${tickers.length} - prices for ${symbol}`);
-
         await getPrices(symbol);
+        let progress = Math.round(((i + 1) / missing.length) * 100);
+        console.log(`${progress}% - ${i + 1}/${missing.length} - prices for missing ${symbol}`);
     }
 
     async function getPrices(symbol) {
         try {
             let unixTimespampNow = Math.floor(Date.now() / 1000);
-            let numberOfDays = 30; // will return 21 prices due to weekends being closed
+            let numberOfDays = 80; // will return 55 prices due to weekends being closed
             let oneDaySeconds = 86400;
 
             let timestampFrom = unixTimespampNow - numberOfDays * oneDaySeconds;
@@ -51,24 +51,22 @@ const pool = require("./pool.js");
 
             let prices = data.map((item) => {
                 let parts = item.split(",");
+                // console.log(parts);
 
                 let day = {
                     date: parts[0],
-                    open: parts[1],
-                    high: parts[2],
-                    low: parts[3],
                     close: parts[4],
-                    adjustedClose: parts[5],
                     volume: parts[6],
                 };
 
-                if (day.adjustedClose) {
+                if (day.close) {
                     return day;
                 }
             });
 
             for (let i = 0; i < prices.length; i++) {
                 let price = prices[i];
+                // console.log(price);
 
                 let query = `
                     use stocks;
@@ -76,11 +74,7 @@ const pool = require("./pool.js");
                         (
                             symbol,
                             date,
-                            open,
-                            high,
-                            low,
                             close,
-                            adjustedClose,
                             volume,
                             timestamp
                         )
@@ -90,15 +84,11 @@ const pool = require("./pool.js");
                             ?,
                             ?,
                             ?,
-                            ?,
-                            ?,
-                            ?,
-                            ?,
                             now()
                         );
                 `;
 
-                let data = [symbol, price.date, price.open, price.high, price.low, price.close, price.adjustedClose, price.volume];
+                let data = [symbol, price.date, price.close, price.volume];
 
                 await pool.query(query, data);
             }
